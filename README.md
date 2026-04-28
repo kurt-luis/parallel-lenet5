@@ -1,0 +1,1 @@
+This code repository contains all files for my project "Parallel Implementations of the LeNet-5 Architecture on the CIFAR-10 Dataset" for 2s2526 CS171: GPU Computing.
