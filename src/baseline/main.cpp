@@ -132,6 +132,44 @@ int main() {
         cout << "Verifying Conv2...\n";
         verify_tensors(my_conv2, golden_conv2, 1e-4);
 
+        // FOURTH LATER: ReLU + Max Pool 2
+        auto golden_pool2 = load_binary("../results/predictions/golden_pool2.bin");
+
+        int PoolK2 = 2;      
+        int PoolS2 = 2;      
+        int PoolOutH2 = OutH2 / PoolS2; // 10 / 2 = 5
+        int PoolOutW2 = OutW2 / PoolS2; // 10 / 2 = 5
+
+        vector<float> my_pool2(N * OutC2 * PoolOutH2 * PoolOutW2, 0.0f);
+
+        for (int n = 0; n < N; ++n) {
+            for (int c = 0; c < OutC2; ++c) {
+                for (int ph = 0; ph < PoolOutH2; ++ph) {
+                    for (int pw = 0; pw < PoolOutW2; ++pw) {
+                        float max_val = 0.0f;
+
+                        for (int kh = 0; kh < PoolK2; ++kh) {
+                            for (int kw = 0; kw < PoolK2; ++kw) {
+                                int ih = ph * PoolS2 + kh;
+                                int iw = pw * PoolS2 + kw;
+                                
+                                int in_idx = idx4d(n, c, ih, iw, OutC2, OutH2, OutW2);
+                                float val = my_conv2[in_idx]; 
+                                
+                                max_val = max(max_val, val);
+                            }
+                        }
+                        
+                        int out_idx = idx4d(n, c, ph, pw, OutC2, PoolOutH2, PoolOutW2);
+                        my_pool2[out_idx] = max_val;
+                    }
+                }
+            }
+        }
+
+        cout << "Verifying Pool2...\n";
+        verify_tensors(my_pool2, golden_pool2, 1e-4);
+
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << "\n";
         return 1;
