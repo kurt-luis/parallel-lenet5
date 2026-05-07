@@ -12,6 +12,8 @@ inline int idx4d(int n, int c, int h, int w, int C, int H, int W) {
 
 int main() {
     try {
+        
+        // FIRST LAYER: Conv1
         auto input = load_binary("../data/processed/test_image_0.bin");
         auto weights = load_binary("../weights/conv1_weight.bin");
         auto biases = load_binary("../weights/conv1_bias.bin");
@@ -44,6 +46,7 @@ int main() {
             }
         }
 
+        cout << "Verifying Conv1...\n";
         verify_tensors(my_conv1, golden_conv1, 1e-4);
 
         // SECOND LAYER: ReLU + Max Pool 1
@@ -86,6 +89,48 @@ int main() {
 
         cout << "Verifying Pool1...\n";
         verify_tensors(my_pool1, golden_pool1, 1e-4);
+
+        // THIRD LAYER: Conv2
+        auto weights2 = load_binary("../weights/conv2_weight.bin");
+        auto biases2 = load_binary("../weights/conv2_bias.bin");
+        auto golden_conv2 = load_binary("../results/predictions/golden_conv2.bin");
+
+        // Parameters 
+        int InC2 = 6, InH2 = 14, InW2 = 14;
+        int OutC2 = 16, K2 = 5;
+        int OutH2 = InH2 - K2 + 1; // 14 - 5 + 1 = 10
+        int OutW2 = InW2 - K2 + 1; // 14 - 5 + 1 = 10
+
+        vector<float> my_conv2(N * OutC2 * OutH2 * OutW2, 0.0f);
+
+        for (int n = 0; n < N; ++n) {
+            for (int oc = 0; oc < OutC2; ++oc) {
+                for (int oh = 0; oh < OutH2; ++oh) {
+                    for (int ow = 0; ow < OutW2; ++ow) {
+                        
+                        float sum = biases2[oc];
+                        
+                        for (int ic = 0; ic < InC2; ++ic) {
+                            for (int kh = 0; kh < K2; ++kh) {
+                                for (int kw = 0; kw < K2; ++kw) {
+                                    
+                                    int in_idx = idx4d(n, ic, oh + kh, ow + kw, InC2, InH2, InW2);
+                                    int w_idx = idx4d(oc, ic, kh, kw, InC2, K2, K2);
+                                    
+                                    sum += my_pool1[in_idx] * weights2[w_idx]; 
+                                }
+                            }
+                        }
+                        
+                        int out_idx = idx4d(n, oc, oh, ow, OutC2, OutH2, OutW2);
+                        my_conv2[out_idx] = sum;
+                    }
+                }
+            }
+        }
+
+        cout << "Verifying Conv2...\n";
+        verify_tensors(my_conv2, golden_conv2, 1e-4);
 
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << "\n";
