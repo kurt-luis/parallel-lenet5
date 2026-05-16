@@ -170,6 +170,78 @@ int main() {
         cout << "Verifying Pool2...\n";
         verify_tensors(my_pool2, golden_pool2, 1e-4);
 
+        // FIFTH LAYER: Fully Connected 1 with ReLU
+        auto weights_fc1 = load_binary("../weights/fc1_weight.bin");
+        auto biases_fc1 = load_binary("../weights/fc1_bias.bin");
+        auto golden_fc1 = load_binary("../results/predictions/golden_fc1_relu.bin");
+
+        int InFeatures1 = 16 * 5 * 5;
+        int OutFeatures1 = 120;
+
+        vector<float> my_fc1(N * OutFeatures1, 0.0f);
+
+        for (int n = 0; n < N; ++n) {
+            for (int out_idx = 0; out_idx < OutFeatures1; ++out_idx) {
+                float sum = biases_fc1[out_idx];
+                for (int in_idx = 0; in_idx < InFeatures1; ++in_idx) {
+                    int w_idx = out_idx * InFeatures1 + in_idx;
+                    sum += my_pool2[n * InFeatures1 + in_idx] * weights_fc1[w_idx];
+                }
+                my_fc1[n * OutFeatures1 + out_idx] = max(0.0f, sum);
+            }
+        }
+
+        cout << "Verifying FC1...\n";
+        verify_tensors(my_fc1, golden_fc1, 1e-4);
+
+        // SIXTH LAYER: Fully Connected 2 with ReLU
+        auto weights_fc2 = load_binary("../weights/fc2_weight.bin");
+        auto biases_fc2 = load_binary("../weights/fc2_bias.bin");
+        auto golden_fc2 = load_binary("../results/predictions/golden_fc2_relu.bin");
+
+        int InFeatures2 = 120; 
+        int OutFeatures2 = 84;
+
+        vector<float> my_fc2(N * OutFeatures2, 0.0f);
+
+        for (int n = 0; n < N; ++n) {
+            for (int out_idx = 0; out_idx < OutFeatures2; ++out_idx) {
+                float sum = biases_fc2[out_idx];
+                for (int in_idx = 0; in_idx < InFeatures2; ++in_idx) {
+                    int w_idx = out_idx * InFeatures2 + in_idx;
+                    sum += my_fc1[n * InFeatures2 + in_idx] * weights_fc2[w_idx];
+                }
+                my_fc2[n * OutFeatures2 + out_idx] = max(0.0f, sum);
+            }
+        }
+
+        cout << "Verifying FC2...\n";
+        verify_tensors(my_fc2, golden_fc2, 1e-4);
+
+        // SEVENTH LAYER: Fully Connected 3
+        auto weights_fc3 = load_binary("../weights/fc3_weight.bin");
+        auto biases_fc3 = load_binary("../weights/fc3_bias.bin");
+        auto golden_fc3 = load_binary("../results/predictions/golden_fc3_out.bin");
+
+        int InFeatures3 = 84; 
+        int OutFeatures3 = 10;
+
+        vector<float> my_fc3(N * OutFeatures3, 0.0f);
+
+        for (int n = 0; n < N; ++n) {
+            for (int out_idx = 0; out_idx < OutFeatures3; ++out_idx) {
+                float sum = biases_fc3[out_idx];
+                for (int in_idx = 0; in_idx < InFeatures3; ++in_idx) {
+                    int w_idx = out_idx * InFeatures3 + in_idx;
+                    sum += my_fc2[n * InFeatures3 + in_idx] * weights_fc3[w_idx];
+                }
+                my_fc3[n * OutFeatures3 + out_idx] = sum;
+            }
+        }
+
+        cout << "Verifying FC3...\n";
+        verify_tensors(my_fc3, golden_fc3, 1e-4);
+
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << "\n";
         return 1;
