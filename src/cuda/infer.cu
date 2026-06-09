@@ -239,7 +239,6 @@ int main() {
 
         cudaDeviceSynchronize();
 
-        // Bring final 10 numbers back to CPU
         vector<float> final_logits(10);
         cudaMemcpy(final_logits.data(), d_out, 10 * sizeof(float), cudaMemcpyDeviceToHost);
 
